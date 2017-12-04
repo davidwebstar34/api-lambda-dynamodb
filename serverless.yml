@@ -1,0 +1,57 @@
+service: api-lambda-dynamodb
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  memorySize: 128
+  timeout: 30
+  profile: dev
+  region: eu-west-1
+  versionFunctions: false
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: arn:aws:dynamodb:*:*:table/SERVICE_LIST
+  
+functions:
+  getDynamo:
+    handler: GetDynamo.handler
+    events:
+      - http:
+          path: service/{serviceName}/{environmentName}
+          method: get      
+          
+resources:
+  Resources:
+    TodosDynamoDbTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: SERVICE_NAME
+            AttributeType: S
+          - AttributeName: ENVIRONMENT_NAME
+            AttributeType: S
+          - AttributeName: VERSION_ID
+            AttributeType: S  
+        KeySchema:
+          - AttributeName: SERVICE_NAME
+            KeyType: HASH
+          - AttributeName: ENVIRONMENT_NAME
+            KeyType: RANGE
+        LocalSecondaryIndexes:
+          - IndexName: VersionEnvironment
+            KeySchema: 
+              - AttributeName: SERVICE_NAME
+                KeyType: HASH
+              - AttributeName: VERSION_ID
+                KeyType: RANGE 
+            Projection:
+              ProjectionType: KEYS_ONLY
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: SERVICE_LIST
+  
